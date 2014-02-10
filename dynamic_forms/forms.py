@@ -13,6 +13,19 @@ from django import forms
 from dynamic_forms.formfields import dynamic_form_field_registry
 
 
+class FieldSet(object):
+    def __init__(self, form, title, fields, classes):
+        self.form = form
+        self.title = title
+        self.fields = fields
+        self.classes = classes
+
+    def __iter__(self):
+        # Similar to how a form can iterate through it's fields...
+        for field in self.fields:
+            yield field
+
+
 class MultiSelectFormField(forms.MultipleChoiceField):
     # http://djangosnippets.org/snippets/2753/
 
@@ -38,6 +51,8 @@ class FormModelForm(forms.Form):
 
     def __init__(self, model, *args, **kwargs):
         self.model = model
+        if hasattr(self.model, "fieldsets"):
+            self._fieldsets = self.model.fieldsets
         super(FormModelForm, self).__init__(*args, **kwargs)
         self.model_fields = OrderedDict()
         for field in self.model.fields.all():
@@ -64,3 +79,16 @@ class FormModelForm(forms.Form):
                     continue
                 mapped_data[name] = value
         return mapped_data
+
+    @property
+    def fieldsets(self):
+        if not hasattr(self, "fieldsets"):
+            return
+
+        for name, data in self._fieldsets:
+            yield FieldSet(
+                form=self,
+                title=name,
+                fields=[self[f] for f in data.get('fields', ())],
+                classes=data.get('classes', '')
+                )
