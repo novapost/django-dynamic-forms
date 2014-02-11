@@ -2,7 +2,7 @@
 from __future__ import unicode_literals
 
 import six
-import json
+
 
 try:  # pragma: no cover
     from collections import OrderedDict
