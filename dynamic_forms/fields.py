@@ -5,10 +5,11 @@ import six
 
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.forms import CheckboxSelectMultiple
+from django.forms import CheckboxSelectMultiple, Field
 from django.utils.text import capfirst
-
+from dynamic_forms.widgets import InfoWidget
 from dynamic_forms.conf import settings
+
 from dynamic_forms.forms import MultiSelectFormField
 
 
@@ -90,6 +91,11 @@ class TextMultiSelectField(six.with_metaclass(models.SubfieldBase,
 
     def get_internal_type(self):
         return "TextField"
+
+
+class ReadOnlyTextField(Field):
+    """ An uneditable field to display text and/or html """
+    widget = InfoWidget
 
 
 if 'south' in settings.INSTALLED_APPS:  # pragma: no cover

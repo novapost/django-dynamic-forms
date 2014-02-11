@@ -280,3 +280,13 @@ class TimeField(BaseDynamicFormField):
 
     class Meta:
         localize = [bool, True, forms.NullBooleanField]
+
+
+@dynamic_form_field
+class InfoField(BaseDynamicFormField):
+
+    cls = 'dynamic_forms.fields.ReadOnlyTextField'
+    display_type = ugettext('Info')
+
+    class Meta:
+        initial = [unicode, True, (forms.CharField, forms.Textarea)]
