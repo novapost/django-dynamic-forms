@@ -15,7 +15,9 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
 from dynamic_forms.formfields import dynamic_form_field_registry
-from dynamic_forms.models import FormFieldModel, FormModel, FormModelData
+from dynamic_forms.models import (FormFieldModel, FormModel, FormModelData,
+                                  FormFieldSetModel)
+from django.core.exceptions import ValidationError
 
 
 class ReadOnlyWidget(forms.Widget):
@@ -94,6 +96,19 @@ class OptionsWidget(forms.MultiWidget):
         return mark_safe(self.format_output(output, id_))
 
 
+class TextMultipleChoiceField(forms.MultipleChoiceField):
+
+    def to_python(self, value):
+        return ','.join(value)
+
+    def validate(self, value):
+        """
+        Validates that the input is a list or tuple.
+        """
+        if self.required and not value:
+            raise ValidationError(self.error_messages['required'], code='required')
+
+
 class OptionsField(forms.MultiValueField):
 
     def __init__(self, meta, *args, **kwargs):
@@ -156,6 +171,37 @@ class AdminFormFieldInlineForm(forms.ModelForm):
             ))
 
 
+class AdminFormFieldSetInlineForm(forms.ModelForm):
+
+    class Meta:
+        model = FormFieldSetModel
+
+    def __init__(self, *args, **kwargs):
+        super(AdminFormFieldSetInlineForm, self).__init__(*args, **kwargs)
+        instance = kwargs.get('instance', None)
+        if instance:
+            self.initial["_fields"] = instance._fields.split(',')
+            # first get the fields available for this form
+            available_fields = [
+                a.name for a in self.instance.parent_form.fields.all()]
+            #used fields are fields already in a fieldset
+            used_fields = []
+            for fieldset in self.instance.parent_form.fieldsets.all():
+                for f in fieldset._fields.split(","):
+                    if f not in self.initial["_fields"]:
+                        used_fields.append(f.strip())
+            available_fields = [
+                f for f in available_fields if f not in used_fields]
+
+            self.fields['_fields'] = TextMultipleChoiceField(
+                choices=[(f, f) for f in available_fields])
+        else:
+            self.fields['_fields'].widget = ReadOnlyWidget(show_text=_(
+                    'The fields will be available once it has '
+                    'been stored the first time.'
+                    ))
+
+
 class FormFieldModelInlineAdmin(admin.StackedInline):
     extra = 3
     form = AdminFormFieldInlineForm
@@ -164,8 +210,14 @@ class FormFieldModelInlineAdmin(admin.StackedInline):
     prepopulated_fields = {"name": ("label",)}
 
 
+class FormFieldSetModelInlineAdmin(admin.StackedInline):
+    extra = 1
+    form = AdminFormFieldSetInlineForm
+    model = FormFieldSetModel
+
+
 class FormModelAdmin(admin.ModelAdmin):
-    inlines = (FormFieldModelInlineAdmin,)
+    inlines = (FormFieldModelInlineAdmin, FormFieldSetModelInlineAdmin)
     list_display = ('name', 'submit_url', 'success_url')
     model = FormModel
 

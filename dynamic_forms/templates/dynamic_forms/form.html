@@ -2,6 +2,30 @@
 <h2>{{ name }}</h2>
 <form method="post" action="{{ submit_url }}">
     {% csrf_token %}
-    {{ form.as_p }}
+    {% if form.fieldsets %}
+        {% for fieldset in form.fieldsets  %}
+        <fieldset class="{{fieldset.classes}}">
+            <h3>{{ fieldset.title }}</h3>
+            {% for field in fieldset  %}
+                {% if field.errors  %}
+                  {{field.errors}}
+                {% endif %}
+            {% if field.is_checkbox %}
+              {{field.field}} {{field.label_tag}}
+            {% else %}
+              {{ field.label_tag}}
+              {% if field.is_readonly %}
+                <p>{{ field.contents|linebreaksbr }}</p>
+              {% else %}
+                {{ field }}
+                {{ field.help_text|safe }}
+                {% endif %}
+              {% endif %}
+            {% endfor %}
+        </fieldset>
+        {% endfor %}
+    {% else %}
+        {{ form.as_p }}
+    {% endif %}
     <button type="submit">{% trans "Submit" %}</button>
 </form>

@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 import six
+import json
 
 try:  # pragma: no cover
     from collections import OrderedDict
@@ -52,7 +53,7 @@ class FormModelForm(forms.Form):
     def __init__(self, model, *args, **kwargs):
         self.model = model
         if hasattr(self.model, "fieldsets"):
-            self._fieldsets = self.model.fieldsets
+            self._fieldsets = self.model.fieldsets.all()
         super(FormModelForm, self).__init__(*args, **kwargs)
         self.model_fields = OrderedDict()
         for field in self.model.fields.all():
@@ -85,10 +86,10 @@ class FormModelForm(forms.Form):
         if not hasattr(self, "fieldsets"):
             return
 
-        for name, data in self._fieldsets:
+        for elem in self._fieldsets:
             yield FieldSet(
                 form=self,
-                title=name,
-                fields=[self[f] for f in data.get('fields', ())],
-                classes=data.get('classes', '')
+                title=elem.title,
+                fields=[self[f] for f in elem._fields.split(',')],
+                classes=elem.classes
                 )

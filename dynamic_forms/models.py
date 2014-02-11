@@ -67,6 +67,22 @@ class FormModel(models.Model):
 
 
 @python_2_unicode_compatible
+class FormFieldSetModel(models.Model):
+    title = models.CharField(_('Title'), max_length=255)
+    classes = models.CharField(_('Classes'), max_length=255,
+                               blank=True, null=True)
+    parent_form = models.ForeignKey(FormModel, on_delete=models.CASCADE,
+                                    related_name='fieldsets')
+    _fields = models.TextField(_('Fields'), blank=True, null=True)
+
+    def __str__(self):
+        return _('FieldSet “%(title)s” in form “%(form_name)s”') % {
+            'title': self.title,
+            'form_name': self.parent_form.name,
+        }
+
+
+@python_2_unicode_compatible
 class FormFieldModel(models.Model):
 
     parent_form = models.ForeignKey(FormModel, on_delete=models.CASCADE,
